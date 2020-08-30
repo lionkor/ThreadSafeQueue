@@ -3,20 +3,18 @@
 
 #include <deque>
 #include <shared_mutex>
-#include <optional>
 #include <utility>
 
 using RWMutex = std::shared_mutex;
 using ReadLock = std::shared_lock<RWMutex>;
 using WriteLock = std::unique_lock<RWMutex>;
 
-template<class T>
+template <class T>
 using SuperQueue = std::deque<T>;
 
-template<class T>
-class ThreadSafeQueue final : private SuperQueue<T>
-{
-private:
+template <class T>
+class ThreadSafeQueue final : private SuperQueue<T> {
+   private:
     mutable RWMutex m_mutex;
 
     bool is_valid_lock(ReadLock& lock) const {
@@ -27,7 +25,7 @@ private:
         return lock.mutex() == &m_mutex;
     }
 
-public:
+   public:
     // --- read ---
 
     [[nodiscard]] const T& back(ReadLock& lock) const {
@@ -82,17 +80,6 @@ public:
         SuperQueue<T>::push_back(std::forward<T>(value));
     }
 
-    [[nodiscard]] std::optional<T> try_pop(WriteLock& lock) {
-        ASSERT(is_valid_lock(lock));
-        if (empty(lock)) {
-            return std::nullopt;
-        } else {
-            auto front = std::move(SuperQueue<T>::front());
-            SuperQueue<T>::pop_front();
-            return front;
-        }
-    }
-
     [[nodiscard]] T pop(WriteLock& lock) {
         ASSERT(is_valid_lock(lock));
         auto front = std::move(SuperQueue<T>::front());
@@ -112,18 +99,16 @@ public:
 
     using ConstIterator = typename SuperQueue<T>::const_iterator;
 
-    class View
-    {
-    private:
+    class View {
+       private:
         ThreadSafeQueue& m_queue;
         ReadLock& m_lock;
 
-        size_t m_current_index { 0 };
+        size_t m_current_index{0};
 
-    public:
+       public:
         View(ThreadSafeQueue& queue, ReadLock& lock)
-            : m_queue(queue)
-            , m_lock(lock) {
+            : m_queue(queue), m_lock(lock) {
             ASSERT(queue.is_valid_lock(lock));
         }
 
@@ -136,43 +121,31 @@ public:
             }
         }
 
-        void move_to_begin() {
-            m_current_index = 0;
-        }
+        void move_to_begin() { m_current_index = 0; }
 
-        void move_to_end() {
-            m_current_index = m_queue.size() - 1;
-        }
+        void move_to_end() { m_current_index = m_queue.size() - 1; }
 
-        const T& view() const {
-            return m_queue.at(m_current_index);
-        }
+        const T& view() const { return m_queue.at(m_current_index); }
     };
 
-    class IterableView
-    {
-    private:
+    class IterableView {
+       private:
         ThreadSafeQueue& m_queue;
         ReadLock& m_lock;
 
-    public:
+       public:
         IterableView(ThreadSafeQueue& queue, ReadLock& lock)
-            : m_queue(queue)
-            , m_lock(lock) {
+            : m_queue(queue), m_lock(lock) {
             ASSERT(queue.is_valid_lock(lock));
         }
 
-        ConstIterator begin() const {
-            return m_queue.cbegin();
-        }
+        ConstIterator begin() const { return m_queue.cbegin(); }
 
-        ConstIterator end() const {
-            return m_queue.cend();
-        }
+        ConstIterator end() const { return m_queue.cend(); }
     };
 
     friend View;
     friend IterableView;
 };
 
-#endif // THREADSAFEQUEUE_H
+#endif  // THREADSAFEQUEUE_H
