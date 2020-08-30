@@ -103,6 +103,7 @@ public:
     }
 
     using ConstIterator = typename SuperQueue<T>::const_iterator;
+    using Iterator = typename SuperQueue<T>::iterator;
 
     class IterableView
     {
@@ -121,7 +122,26 @@ public:
         ConstIterator end() const { return m_queue.cend(); }
     };
 
+    class IterableWriteView
+    {
+    private:
+        ThreadSafeQueue& m_queue;
+        WriteLock& m_lock;
+
+    public:
+        IterableWriteView(ThreadSafeQueue& queue, WriteLock& lock)
+            : m_queue(queue), m_lock(lock) {
+            ASSERT(queue.is_valid_lock(lock));
+        }
+
+        ConstIterator begin() const { return m_queue.cbegin(); }
+        ConstIterator end() const { return m_queue.cend(); }
+        Iterator begin() { return m_queue.begin(); }
+        Iterator end() { return m_queue.end(); }
+    };
+
     friend IterableView;
+    friend IterableWriteView;
 };
 
 #endif // THREADSAFEQUEUE_H
