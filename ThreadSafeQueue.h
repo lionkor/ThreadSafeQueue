@@ -9,12 +9,13 @@ using RWMutex = std::shared_mutex;
 using ReadLock = std::shared_lock<RWMutex>;
 using WriteLock = std::unique_lock<RWMutex>;
 
-template <class T>
+template<class T>
 using SuperQueue = std::deque<T>;
 
-template <class T>
-class ThreadSafeQueue final : private SuperQueue<T> {
-   private:
+template<class T>
+class ThreadSafeQueue final : private SuperQueue<T>
+{
+private:
     mutable RWMutex m_mutex;
 
     bool is_valid_lock(ReadLock& lock) const {
@@ -25,7 +26,7 @@ class ThreadSafeQueue final : private SuperQueue<T> {
         return lock.mutex() == &m_mutex;
     }
 
-   public:
+public:
     // --- read ---
 
     [[nodiscard]] const T& back(ReadLock& lock) const {
@@ -99,14 +100,15 @@ class ThreadSafeQueue final : private SuperQueue<T> {
 
     using ConstIterator = typename SuperQueue<T>::const_iterator;
 
-    class View {
-       private:
+    class View
+    {
+    private:
         ThreadSafeQueue& m_queue;
         ReadLock& m_lock;
 
-        size_t m_current_index{0};
+        size_t m_current_index { 0 };
 
-       public:
+    public:
         View(ThreadSafeQueue& queue, ReadLock& lock)
             : m_queue(queue), m_lock(lock) {
             ASSERT(queue.is_valid_lock(lock));
@@ -128,12 +130,13 @@ class ThreadSafeQueue final : private SuperQueue<T> {
         const T& view() const { return m_queue.at(m_current_index); }
     };
 
-    class IterableView {
-       private:
+    class IterableView
+    {
+    private:
         ThreadSafeQueue& m_queue;
         ReadLock& m_lock;
 
-       public:
+    public:
         IterableView(ThreadSafeQueue& queue, ReadLock& lock)
             : m_queue(queue), m_lock(lock) {
             ASSERT(queue.is_valid_lock(lock));
@@ -148,4 +151,4 @@ class ThreadSafeQueue final : private SuperQueue<T> {
     friend IterableView;
 };
 
-#endif  // THREADSAFEQUEUE_H
+#endif // THREADSAFEQUEUE_H
