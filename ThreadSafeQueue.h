@@ -140,6 +140,16 @@ public:
         Iterator end() { return m_queue.end(); }
     };
 
+    IterableView acquire_iterable_view(ReadLock& lock) const {
+        ASSERT(is_valid_lock(lock));
+        return IterableView(*this, lock);
+    }
+
+    IterableWriteView acquire_iterable_write_view(WriteLock& lock) {
+        ASSERT(is_valid_lock(lock));
+        return IterableWriteView(*this, lock);
+    }
+
     friend IterableView;
     friend IterableWriteView;
 };
