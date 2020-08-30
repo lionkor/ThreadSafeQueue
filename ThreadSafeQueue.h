@@ -4,6 +4,10 @@
 #include <deque>
 #include <shared_mutex>
 #include <utility>
+#include <cassert>
+#ifndef ASSERT
+#define ASSERT assert
+#endif // ASSERT
 
 using RWMutex = std::shared_mutex;
 using ReadLock = std::shared_lock<RWMutex>;
@@ -100,36 +104,6 @@ public:
 
     using ConstIterator = typename SuperQueue<T>::const_iterator;
 
-    class View
-    {
-    private:
-        ThreadSafeQueue& m_queue;
-        ReadLock& m_lock;
-
-        size_t m_current_index { 0 };
-
-    public:
-        View(ThreadSafeQueue& queue, ReadLock& lock)
-            : m_queue(queue), m_lock(lock) {
-            ASSERT(queue.is_valid_lock(lock));
-        }
-
-        bool next() {
-            if (m_current_index >= m_queue.size()) {
-                return false;
-            } else {
-                ++m_current_index;
-                return true;
-            }
-        }
-
-        void move_to_begin() { m_current_index = 0; }
-
-        void move_to_end() { m_current_index = m_queue.size() - 1; }
-
-        const T& view() const { return m_queue.at(m_current_index); }
-    };
-
     class IterableView
     {
     private:
@@ -147,7 +121,6 @@ public:
         ConstIterator end() const { return m_queue.cend(); }
     };
 
-    friend View;
     friend IterableView;
 };
 
