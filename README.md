@@ -32,6 +32,8 @@ In general, whenever you want to access the queue in any way, you are required t
 This makes it super difficult to mess up. 
 Further, its verified that the lock you are passing actually locks the queue's mutex.
 
+The passed queue is not locked or unlocked in *any way*. Locks stay locked for their entire lifetime.
+
 Acceptable locks are `ReadLock` and `WriteLock`. 
 They can be acquired from the queue with `queue.acquire_read_lock()` and `queue.acquire_write_lock()`. 
 Keep in mind that these locks are "scoped", so the only way to release the lock is to destroy them. 
@@ -77,3 +79,36 @@ while (...) {
 }
 ```
 
+### Iteration
+
+`ThreadSafeQueue` itself is not iterable, as this is difficult to implement directly (with the locks passing and all).
+Instead, there are `IterableView` and `IterableWriteView`. These classes are forward-iterable and hold a lock for their entire lifetime.
+
+Example usage of this: 
+
+```cpp
+ThreadSafeQueue<int> queue;
+
+{ // populate
+    WriteLock lock = queue.acquire_write_lock();
+    for (int i = 0; i < 10; ++i) {0
+        queue.push(i, lock);
+    }
+}
+
+{ // print all elements
+    ReadLock lock = queue.acquire_read_lock();
+    auto view = queue.acquire_iterable_view(lock);
+    for (int i : view) {
+        std::cout << i << std::endl;
+    }
+}
+
+{ // change elements
+    WriteLock lock = queue.acquire_write_lock();
+    auto write_view = queue.acquire_iterable_write_view();
+    for (int& i : view) {
+        i = i * i;
+    }
+}
+```
